@@ -47,28 +47,21 @@ router.post('/register', verifyVendorToken, upload.fields([
   { name: 'cafeImages', maxCount: 3 },
 ]), async (req: any, res) => {
   try {
-    const { cafename, vendorPhone, cafeAddress, fromDates } = req.body;
+    const { cafename, vendorPhone, cafeAddress } = req.body;
     const vendorEmail = req.vendor.email;
-    // fromDates should be a comma-separated string or array
-    let fromDateArr: string[] = [];
-    if (Array.isArray(fromDates)) {
-      fromDateArr = fromDates;
-    } else if (typeof fromDates === 'string') {
-      fromDateArr = fromDates.split(',').map((d: string) => d.trim());
-    }
     // Validate
-    if (!cafename || !vendorPhone || !cafeAddress || !req.files['thumbnailImage'] || !req.files['cafeImages'] || req.files['cafeImages'].length !== 3 || fromDateArr.length !== 3) {
-      return res.status(400).json({ message: 'All fields are required. You must upload 1 thumbnailImage, 3 cafeImages, and provide 3 fromDates.' });
+    if (!cafename || !vendorPhone || !cafeAddress || !req.files['thumbnailImage'] || !req.files['cafeImages'] || req.files['cafeImages'].length !== 3) {
+      return res.status(400).json({ message: 'All fields are required. You must upload 1 thumbnailImage and 3 cafeImages.' });
     }
     // Get URLs from cloudinary upload
     const thumbnailImageUrl = req.files['thumbnailImage'][0].path;
-    const cafeImages = req.files['cafeImages'].map((file: any, idx: number) => ({ url: file.path, fromDate: new Date(fromDateArr[idx]) }));
+    const cafeImages = req.files['cafeImages'].map((file: any) => file.path);
     const cafe = new Cafe({ cafename, vendorEmail, vendorPhone, cafeAddress, thumbnailImage: thumbnailImageUrl, cafeImages });
     await cafe.save();
     res.status(201).json({
       message: 'Cafe registered successfully',
       cafe,
-      imageUrls: cafe.cafeImages.map((img: any) => img.url),
+      imageUrls: cafe.cafeImages,
     });
   } catch (error) {
     res.status(500).json({ message: 'Error registering cafe', error });
