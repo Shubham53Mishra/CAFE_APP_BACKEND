@@ -1,10 +1,24 @@
-
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import Vendor, { IVendor } from '../models/Vendor';
 
 const router = express.Router();
+
+// Get vendor profile by token
+router.get('/profile', async (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) return res.status(401).json({ message: 'No token provided' });
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+    const vendor = await Vendor.findOne({ email: decoded.email });
+    if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
+    res.status(200).json({ vendor });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching profile', error });
+  }
+});
 
 // Vendor Signup Route
 router.post('/signup', async (req, res) => {
