@@ -49,10 +49,10 @@ router.post('/register', verifyVendorToken, upload.fields([
   try {
     const { cafename, vendorPhone, cafeAddress } = req.body;
     const vendorEmail = req.vendor.email;
-    // Validate: at least 1 cafeImage, max 3
+    // Validate
     const cafeImagesFiles = req.files['cafeImages'];
     if (!cafename || !vendorPhone || !cafeAddress || !req.files['thumbnailImage'] || !cafeImagesFiles || cafeImagesFiles.length < 1 || cafeImagesFiles.length > 3) {
-      return res.status(400).json({ message: 'All fields are required. You must upload 1 thumbnailImage and 1-3 cafeImages.' });
+      return res.status(400).json({ message: 'All fields are required. You must upload 1 thumbnailImage and at least 1 (max 3) cafeImages.' });
     }
     // Get URLs from cloudinary upload
     const thumbnailImageUrl = req.files['thumbnailImage'][0].path;
