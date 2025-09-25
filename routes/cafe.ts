@@ -4,7 +4,9 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
-// Cloudinary config (make sure your .env has CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)
+
+const router = express.Router();
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -22,12 +24,35 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage });
 
-const router = express.Router();
+const Item = require('../models/Item').default;
 
 // Extend Express Request to include vendor
 interface VendorRequest extends Request {
   vendor?: any;
 }
+
+// Add item to a cafe (vendor only, image upload)
+router.post('/item', verifyVendorToken, upload.single('image'), async (req: any, res) => {
+  try {
+    const { name, price, cafeId } = req.body;
+    const vendorEmail = req.vendor.email;
+    if (!name || !price || !cafeId || !req.file) {
+      return res.status(400).json({ message: 'All fields are required: name, price, cafeId, image.' });
+    }
+    // Check if cafe belongs to this vendor
+    const cafe = await Cafe.findOne({ _id: cafeId, vendorEmail });
+    if (!cafe) {
+      return res.status(403).json({ message: 'You can only add items to your own cafes.' });
+    }
+    // Image URL from Cloudinary
+    const imageUrl = req.file.path;
+    const item = new Item({ name, price, image: imageUrl, cafeId, vendorEmail });
+    await item.save();
+    res.status(201).json({ message: 'Item added successfully', item });
+  } catch (error) {
+    res.status(500).json({ message: 'Error adding item', error });
+  }
+});
 
 // Middleware to verify vendor token
 function verifyVendorToken(req: VendorRequest, res: any, next: any) {
