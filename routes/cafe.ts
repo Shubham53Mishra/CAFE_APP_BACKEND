@@ -51,6 +51,11 @@ router.post('/item', verifyVendorToken, upload.single('image'), async (req: any,
     if (!cafe) {
       return res.status(403).json({ message: 'You can only add items to your own cafes.' });
     }
+    // Check for duplicate item name for this vendor and cafe
+    const existingItem = await Item.findOne({ name, cafeId, vendorEmail });
+    if (existingItem) {
+      return res.status(409).json({ message: 'Item with this name already exists for this cafe and vendor.' });
+    }
     // Image URL from Cloudinary
     const imageUrl = req.file.path;
     const item = new Item({ name, price, image: imageUrl, cafeId, vendorEmail });
