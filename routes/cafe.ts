@@ -1,6 +1,26 @@
 import express, { Request } from 'express';
 import Cafe from '../models/Cafe';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+// Cloudinary config (make sure your .env has CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req: any, file: any) => {
+    return {
+      folder: 'cafe_images',
+      resource_type: 'auto',
+    };
+  },
+});
+const upload = multer({ storage });
 
 const router = express.Router();
 
@@ -21,17 +41,35 @@ function verifyVendorToken(req: VendorRequest, res: any, next: any) {
   });
 }
 
-// Register a new cafe (only for logged-in vendor)
-router.post('/register', verifyVendorToken, async (req: VendorRequest, res) => {
+// Register a new cafe (with image upload, only for logged-in vendor)
+router.post('/register', verifyVendorToken, upload.fields([
+  { name: 'thumbnailImage', maxCount: 1 },
+  { name: 'cafeImages', maxCount: 3 },
+]), async (req: any, res) => {
   try {
-    const { cafename, vendorPhone, cafeAddress, thumbnailImage, cafeImages } = req.body;
+    const { cafename, vendorPhone, cafeAddress, fromDates } = req.body;
     const vendorEmail = req.vendor.email;
-    if (!cafename || !vendorPhone || !cafeAddress || !thumbnailImage || !cafeImages || !Array.isArray(cafeImages) || cafeImages.length !== 3) {
-      return res.status(400).json({ message: 'All fields are required and cafeImages must be an array of 3 images.' });
+    // fromDates should be a comma-separated string or array
+    let fromDateArr: string[] = [];
+    if (Array.isArray(fromDates)) {
+      fromDateArr = fromDates;
+    } else if (typeof fromDates === 'string') {
+      fromDateArr = fromDates.split(',').map((d: string) => d.trim());
     }
-    const cafe = new Cafe({ cafename, vendorEmail, vendorPhone, cafeAddress, thumbnailImage, cafeImages });
+    // Validate
+    if (!cafename || !vendorPhone || !cafeAddress || !req.files['thumbnailImage'] || !req.files['cafeImages'] || req.files['cafeImages'].length !== 3 || fromDateArr.length !== 3) {
+      return res.status(400).json({ message: 'All fields are required. You must upload 1 thumbnailImage, 3 cafeImages, and provide 3 fromDates.' });
+    }
+    // Get URLs from cloudinary upload
+    const thumbnailImageUrl = req.files['thumbnailImage'][0].path;
+    const cafeImages = req.files['cafeImages'].map((file: any, idx: number) => ({ url: file.path, fromDate: new Date(fromDateArr[idx]) }));
+    const cafe = new Cafe({ cafename, vendorEmail, vendorPhone, cafeAddress, thumbnailImage: thumbnailImageUrl, cafeImages });
     await cafe.save();
-    res.status(201).json({ message: 'Cafe registered successfully', cafe });
+    res.status(201).json({
+      message: 'Cafe registered successfully',
+      cafe,
+      imageUrls: cafe.cafeImages.map((img: any) => img.url),
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error registering cafe', error });
   }

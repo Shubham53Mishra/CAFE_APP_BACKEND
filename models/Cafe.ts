@@ -6,7 +6,7 @@ export interface ICafe extends Document {
   vendorPhone: string;
   cafeAddress: string;
   thumbnailImage: string;
-  cafeImages: string[];
+  cafeImages: { url: string; fromDate: Date }[];
 }
 
 const cafeSchema = new Schema<ICafe>({
@@ -15,7 +15,12 @@ const cafeSchema = new Schema<ICafe>({
   vendorPhone: { type: String, required: true },
   cafeAddress: { type: String, required: true },
   thumbnailImage: { type: String, required: true },
-  cafeImages: { type: [String], required: true },
+  cafeImages: [
+    {
+      url: { type: String, required: true },
+      fromDate: { type: Date, required: true },
+    },
+  ],
 });
 
 export default mongoose.model<ICafe>('Cafe', cafeSchema);
