@@ -1,5 +1,7 @@
+
 import express from 'express';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import Vendor, { IVendor } from '../models/Vendor';
 
 const router = express.Router();
@@ -15,7 +17,13 @@ router.post('/signup', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const vendor = new Vendor({ fullname, email, mobile, password: hashedPassword });
     await vendor.save();
-    res.status(201).json({ message: 'Vendor registered successfully' });
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: vendor._id, email: vendor.email, role: 'vendor' },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '7d' }
+    );
+    res.status(201).json({ message: 'Vendor registered successfully', token });
   } catch (error) {
     res.status(500).json({ message: 'Error registering vendor', error });
   }
@@ -33,7 +41,17 @@ router.post('/login', async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
-    res.status(200).json({ message: 'Login successful', vendor: { fullname: vendor.fullname, email: vendor.email, mobile: vendor.mobile } });
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: vendor._id, email: vendor.email, role: 'vendor' },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '7d' }
+    );
+    res.status(200).json({
+      message: 'Login successful',
+      vendor: { fullname: vendor.fullname, email: vendor.email, mobile: vendor.mobile },
+      token
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error logging in', error });
   }
