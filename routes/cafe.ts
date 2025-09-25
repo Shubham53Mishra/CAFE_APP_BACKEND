@@ -54,6 +54,11 @@ router.post('/register', verifyVendorToken, upload.fields([
     if (!cafename || !vendorPhone || !cafeAddress || !req.files['thumbnailImage'] || !cafeImagesFiles || cafeImagesFiles.length < 1 || cafeImagesFiles.length > 3) {
       return res.status(400).json({ message: 'All fields are required. You must upload 1 thumbnailImage and at least 1 (max 3) cafeImages.' });
     }
+    // Check for duplicate cafe for this vendor
+    const existingCafe = await Cafe.findOne({ cafename, vendorEmail });
+    if (existingCafe) {
+      return res.status(409).json({ message: 'Cafe with this name already registered for this vendor.' });
+    }
     // Get URLs from cloudinary upload
     const thumbnailImageUrl = req.files['thumbnailImage'][0].path;
     const cafeImages = cafeImagesFiles.map((file: any) => file.path);
