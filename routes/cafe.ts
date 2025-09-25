@@ -1,3 +1,9 @@
+// ...existing code...
+// All imports and router declaration above
+// ...existing code...
+
+// Get items: if vendor token present, show only vendor's items; else show all
+// Place this route after all imports and router declaration
 import express, { Request } from 'express';
 import Cafe from '../models/Cafe';
 import jwt from 'jsonwebtoken';
@@ -108,6 +114,31 @@ router.get('/register', verifyVendorToken, async (req: VendorRequest, res) => {
     res.status(200).json({ cafes });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching cafes', error });
+  }
+});
+
+// Get items: if vendor token present, show only vendor's items; else show all
+router.get('/item', async (req: any, res) => {
+  try {
+    let items;
+    // Check for Authorization header
+    const authHeader = req.headers['authorization'];
+    if (authHeader) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const vendor = jwt.verify(token, process.env.JWT_SECRET as string);
+        items = await Item.find({ vendorEmail: (vendor as any).email });
+      } catch (err) {
+        // Invalid token, show all items
+        items = await Item.find();
+      }
+    } else {
+      // No token, show all items
+      items = await Item.find();
+    }
+    res.status(200).json({ items });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching items', error });
   }
 });
 
