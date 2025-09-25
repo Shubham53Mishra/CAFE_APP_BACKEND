@@ -49,13 +49,14 @@ router.post('/register', verifyVendorToken, upload.fields([
   try {
     const { cafename, vendorPhone, cafeAddress } = req.body;
     const vendorEmail = req.vendor.email;
-    // Validate
-    if (!cafename || !vendorPhone || !cafeAddress || !req.files['thumbnailImage'] || !req.files['cafeImages'] || req.files['cafeImages'].length !== 3) {
-      return res.status(400).json({ message: 'All fields are required. You must upload 1 thumbnailImage and 3 cafeImages.' });
+    // Validate: at least 1 cafeImage, max 3
+    const cafeImagesFiles = req.files['cafeImages'];
+    if (!cafename || !vendorPhone || !cafeAddress || !req.files['thumbnailImage'] || !cafeImagesFiles || cafeImagesFiles.length < 1 || cafeImagesFiles.length > 3) {
+      return res.status(400).json({ message: 'All fields are required. You must upload 1 thumbnailImage and 1-3 cafeImages.' });
     }
     // Get URLs from cloudinary upload
     const thumbnailImageUrl = req.files['thumbnailImage'][0].path;
-    const cafeImages = req.files['cafeImages'].map((file: any) => file.path);
+    const cafeImages = cafeImagesFiles.map((file: any) => file.path);
     const cafe = new Cafe({ cafename, vendorEmail, vendorPhone, cafeAddress, thumbnailImage: thumbnailImageUrl, cafeImages });
     await cafe.save();
     res.status(201).json({
