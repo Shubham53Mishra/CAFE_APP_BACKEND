@@ -34,11 +34,12 @@ interface VendorRequest extends Request {
 // Add item to a cafe (vendor only, image upload)
 router.post('/item', verifyVendorToken, upload.single('image'), async (req: any, res) => {
   try {
-    const { name, price, cafeId } = req.body;
+    let { name, price, cafeId } = req.body;
     const vendorEmail = req.vendor.email;
     if (!name || !price || !cafeId || !req.file) {
       return res.status(400).json({ message: 'All fields are required: name, price, cafeId, image.' });
     }
+    cafeId = cafeId.trim();
     // Check if cafe belongs to this vendor
     const cafe = await Cafe.findOne({ _id: cafeId, vendorEmail });
     if (!cafe) {
