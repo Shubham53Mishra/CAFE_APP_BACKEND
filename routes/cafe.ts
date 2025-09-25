@@ -74,8 +74,8 @@ router.post('/register', verifyVendorToken, upload.fields([
   }
 });
 
-// Get all cafes for the logged-in vendor
-router.get('/mycafes', verifyVendorToken, async (req: VendorRequest, res) => {
+// Get all cafes for the logged-in vendor (also available at /register for GET)
+router.get('/register', verifyVendorToken, async (req: VendorRequest, res) => {
   try {
     const vendorEmail = req.vendor.email;
     const cafes = await Cafe.find({ vendorEmail });
