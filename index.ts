@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
+import vendorRoutes from './routes/vendor';
 
 dotenv.config();
 const app = express();
@@ -19,6 +20,7 @@ mongoose.connect(process.env.MONGO_URI as string)
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/vendor', vendorRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
