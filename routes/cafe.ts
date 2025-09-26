@@ -114,6 +114,9 @@ router.post('/register', verifyVendorToken, upload.fields([
 // Get all cafes for the logged-in vendor (also available at /register for GET)
 router.get('/register', verifyVendorToken, async (req: VendorRequest, res) => {
   try {
+    if (!req.vendor || req.vendor.role !== 'vendor') {
+      return res.status(403).json({ message: 'Access denied: Only vendors can view their cafes.' });
+    }
     const vendorEmail = req.vendor.email;
     const cafes = await Cafe.find({ vendorEmail });
     res.status(200).json({ cafes });
