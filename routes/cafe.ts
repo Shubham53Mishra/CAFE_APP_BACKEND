@@ -122,7 +122,6 @@ router.get('/register', verifyVendorToken, async (req: VendorRequest, res) => {
     if (!req.vendor || req.vendor.role !== 'vendor') {
       return res.status(403).json({ message: 'Access denied: Only vendors can view their cafes.' });
     }
-    console.log('Vendor email from token:', req.vendor.email);
     const vendorEmail = req.vendor.email;
     const cafes = await Cafe.find({ vendorEmail });
     res.status(200).json({ cafes });
