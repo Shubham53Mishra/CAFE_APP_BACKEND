@@ -73,7 +73,9 @@ function verifyVendorToken(req: VendorRequest, res: any, next: any) {
   if (!token) return res.status(401).json({ message: 'No token provided' });
   jwt.verify(token, process.env.JWT_SECRET as string, (err: any, payload: any) => {
     if (err) return res.status(403).json({ message: 'Invalid token' });
-    // Ensure payload contains email and role
+    if (!payload || !payload.email || !payload.role || !payload.id) {
+      return res.status(403).json({ message: 'Invalid token payload' });
+    }
     req.vendor = {
       email: payload.email,
       role: payload.role,
