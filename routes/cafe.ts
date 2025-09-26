@@ -71,9 +71,14 @@ function verifyVendorToken(req: VendorRequest, res: any, next: any) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'No token provided' });
-  jwt.verify(token, process.env.JWT_SECRET as string, (err: any, user: any) => {
+  jwt.verify(token, process.env.JWT_SECRET as string, (err: any, payload: any) => {
     if (err) return res.status(403).json({ message: 'Invalid token' });
-    req.vendor = user;
+    // Ensure payload contains email and role
+    req.vendor = {
+      email: payload.email,
+      role: payload.role,
+      id: payload.id
+    };
     next();
   });
 }
@@ -117,6 +122,7 @@ router.get('/register', verifyVendorToken, async (req: VendorRequest, res) => {
     if (!req.vendor || req.vendor.role !== 'vendor') {
       return res.status(403).json({ message: 'Access denied: Only vendors can view their cafes.' });
     }
+    console.log('Vendor email from token:', req.vendor.email);
     const vendorEmail = req.vendor.email;
     const cafes = await Cafe.find({ vendorEmail });
     res.status(200).json({ cafes });
