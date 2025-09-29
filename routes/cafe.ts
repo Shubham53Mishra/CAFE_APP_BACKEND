@@ -118,14 +118,27 @@ router.post('/register', verifyVendorToken, upload.fields([
   }
 });
 
-// Get all cafes for the logged-in vendor (also available at /register for GET)
-router.get('/register', verifyVendorToken, async (req: VendorRequest, res) => {
+// GET cafes: if vendor token, show only that vendor's cafes; if no token, show all
+router.get('/register', async (req: any, res) => {
   try {
-    if (!req.vendor || req.vendor.role !== 'vendor') {
-      return res.status(403).json({ message: 'Access denied: Only vendors can view their cafes.' });
+    const authHeader = req.headers['authorization'];
+    let cafes;
+    if (authHeader) {
+      // If token is present, verify and show only that vendor's cafes
+      const token = authHeader.split(' ')[1];
+      try {
+        const payload = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+        if (!payload || !payload.email) {
+          return res.status(403).json({ message: 'Invalid token payload' });
+        }
+        cafes = await Cafe.find({ vendorEmail: payload.email });
+      } catch (err) {
+        return res.status(403).json({ message: 'Invalid token' });
+      }
+    } else {
+      // No token, show all cafes
+      cafes = await Cafe.find();
     }
-    const vendorEmail = req.vendor.email;
-    const cafes = await Cafe.find({ vendorEmail });
     res.status(200).json({ cafes });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching cafes', error });
